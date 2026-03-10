@@ -179,3 +179,70 @@ bool rb_get(ring_buffer_t *rb, uint8_t *byte) {
 
     return true;
 }
+
+size_t rb_get_read_ptr(const ring_buffer_t  *rb, uint8_t **ptr) {
+
+    if (rb == NULL || ptr == NULL || rb->count == 0) {
+        if (ptr != NULL) {
+            *ptr = NULL;
+        }
+        return 0;
+    }
+
+    *ptr = &rb->buffer[rb->tail];
+
+    size_t contiguous = rb->size - rb->tail;
+
+    if (contiguous > rb->count) {
+        contiguous = rb->count;
+    }
+
+    return contiguous;
+}
+
+size_t rb_get_write_ptr(const ring_buffer_t *rb,  uint8_t **ptr) {
+    
+    if (rb == NULL || ptr == NULL || rb->count == rb->size) {
+        if (ptr != NULL) {
+            *ptr = NULL;
+        }
+        return 0;
+    }
+
+    *ptr = &rb->buffer[rb->head];
+
+    size_t contiguous = rb->size - rb->head;
+    size_t available = rb_available(rb);
+    if (contiguous > available) {
+        contiguous = available;
+    }
+    return contiguous;
+}
+
+void rb_advance_read(ring_buffer_t *rb, size_t len) {
+
+    if (rb == NULL || len == 0) {
+        return;
+    }
+
+    if (len > rb->count) {
+        len = rb->count;
+    }
+
+    rb->tail = (rb->tail + len) % rb->size;
+    rb->count -= len;
+}
+
+void rb_advance_write(ring_buffer_t *rb, size_t len) {
+
+    if (rb == NULL  || len == 0) {
+        return;
+    }
+
+    if (len > rb_available(rb)) {
+        len = rb_available(rb);
+    }
+
+    rb->head = (rb->head + len) % rb->size;
+    rb->count += len;
+}
