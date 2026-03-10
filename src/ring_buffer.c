@@ -1,5 +1,6 @@
 #include "ring_buffer.h"
 #include <assert.h>
+#include <string.h>
 
 bool ring_buffer_init(ring_buffer_t *rb, uint8_t *buf, size_t size) {
     if (rb == NULL || buf == NULL || size == 0) {
@@ -49,4 +50,67 @@ size_t rb_count(const ring_buffer_t *rb) {
 size_t rb_capacity(const ring_buffer_t *rb) {
     assert(rb != NULL);
     return (rb->size);
+}
+
+size_t rb_available(const ring_buffer_t *rb) {
+    assert(rb != NULL);
+    return (rb->size - rb->count);
+}
+
+size_t rb_read(ring_buffer_t *rb, uint8_t *data, size_t bytes) {
+    assert(rb != NULL);
+    assert(data != NULL);
+
+    if (rb->count == 0 || bytes == 0) {
+        return 0;
+    }
+
+    size_t to_read = (bytes < rb->count ? bytes : rb->count);
+    size_t first_part = rb->size - rb->tail;
+
+    if (first_part > to_read) {
+        first_part = to_read;
+    }
+    memcpy(data, &rb->buffer[rb->tail], first_part);
+
+    if (first_part < to_read) {
+        size_t second_part = to_read - first_part;
+        memcpy(&data[first_part], rb->buffer, second_part);
+        rb->tail = second_part;
+    }
+    else {
+        rb->tail = (rb->tail + to_read) % rb->size;
+    }
+
+    rb->count -= to_read;
+    return to_read;
+}
+
+size_t rb_write(ring_buffer_t *rb, uint8_t *data, size_t size) {
+    assert(rb != NULL);
+    assert(data != NULL);
+
+    if (rb->count == rb->size || size == 0) {
+        return 0;
+    }
+
+    size_t to_write = (size < rb_available(rb) ? size : rb_available(rb));
+
+    size_t first_part = rb->size - rb->head;
+    if (first_part > to_write) {
+        first_part = to_write;
+    }
+    memcpy(&rb->buffer[rb->head], data, first_part);
+
+    if (first_part < to_write) {
+        size_t second_part = to_write - first_part;
+        memcpy(rb->buffer, &data[first_part], second_part);
+        rb->head = second_part;
+    }
+    else {
+        rb->head = (rb->head + to_write) % rb->size;
+    }
+    rb->count += to_write;
+
+    return to_write;
 }
