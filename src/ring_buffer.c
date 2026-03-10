@@ -114,3 +114,42 @@ size_t rb_write(ring_buffer_t *rb, uint8_t *data, size_t size) {
 
     return to_write;
 }
+
+size_t rb_peek(const ring_buffer_t *rb, size_t size,  uint8_t *data) {
+
+    if (rb == NULL || data == NULL || rb->count == 0 || size == 0) {
+        return 0;
+    }
+
+    size_t to_peek = (size < rb->count ? size : rb->count);
+
+    size_t first_part, second_part;
+
+    first_part = rb->size - rb->tail;
+    if (first_part > to_peek) {
+        first_part = to_peek;
+    }
+    memcpy(data, &rb->buffer[rb->tail], first_part);
+
+    if (first_part < to_peek) {
+        second_part = to_peek - first_part;
+        memcpy(&data[first_part], rb->buffer, second_part);
+    }
+
+    return to_peek;
+}
+
+size_t rb_skip(ring_buffer_t *rb, size_t len) {
+    assert(rb != NULL);
+
+    if (rb == NULL || len == 0 || rb->count == 0) {
+        return 0;
+    }
+
+    size_t to_skip = len < rb->count ? len : rb->count;
+
+    rb->tail = (rb->tail + to_skip) % rb->size;
+    rb->count -= to_skip;
+
+    return to_skip;
+}
