@@ -139,10 +139,11 @@ size_t rb_peek(const ring_buffer_t *rb, size_t size,  uint8_t *data) {
     return to_peek;
 }
 
-size_t rb_skip(ring_buffer_t *rb, size_t len) {
+size_t rb_skip(ring_buffer_t *rb, size_t len){
     assert(rb != NULL);
 
-    if (rb == NULL || len == 0 || rb->count == 0) {
+    if (rb == NULL || len == 0 || rb->count == 0)
+    {
         return 0;
     }
 
@@ -152,4 +153,29 @@ size_t rb_skip(ring_buffer_t *rb, size_t len) {
     rb->count -= to_skip;
 
     return to_skip;
+}
+
+bool rb_put(ring_buffer_t *rb, uint8_t byte) {
+
+    if (rb == NULL || rb->count == rb->size) {
+        return false;
+    }
+
+    rb->buffer[rb->head] = byte;
+    rb->head = (rb->head + 1) % rb->size;
+    rb->count += 1;
+
+    return true;
+}
+
+bool rb_get(ring_buffer_t *rb, uint8_t *byte) {
+
+    if (rb == NULL || byte == NULL || rb-> count == 0) {
+        return false;
+    }
+    *byte = rb->buffer[rb->tail];
+    rb->tail = (rb->tail + 1) % rb->size;
+    rb->count -= 1;
+
+    return true;
 }
